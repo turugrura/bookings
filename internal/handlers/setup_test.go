@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -17,7 +18,7 @@ import (
 	"github.com/turugrura/bookings/internal/render"
 )
 
-var app config.AppConfig
+var appTest config.AppConfig
 var session *scs.SessionManager
 var pathToTemplates = "./../../templates"
 var functions = template.FuncMap{}
@@ -25,26 +26,30 @@ var functions = template.FuncMap{}
 func getRoutes() http.Handler {
 	gob.Register(models.Reservation{})
 
-	app.InProduction = false
+	appTest.InProduction = false
+
+	appTest.InfoLog = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+
+	appTest.ErrorLog = log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
 	session = scs.New()
 	session.Lifetime = 24 * time.Hour
 	session.Cookie.Persist = true
 	session.Cookie.SameSite = http.SameSiteLaxMode
-	session.Cookie.Secure = app.InProduction
+	session.Cookie.Secure = appTest.InProduction
 
-	app.Session = session
+	appTest.Session = session
 
 	tc, err := CreateTestTemplateCache()
 	if err != nil {
 		log.Fatal(err)
 	}
-	app.TemplateCache = tc
-	app.UseCache = true
+	appTest.TemplateCache = tc
+	appTest.UseCache = true
 
-	render.NewTemplates(&app)
+	render.NewTemplates(&appTest)
 
-	repo := NewRepo(&app)
+	repo := NewRepo(&appTest)
 	NewHandlers(repo)
 
 	mux := chi.NewRouter()
